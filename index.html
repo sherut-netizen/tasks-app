@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>המשימות שלי</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#14213D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=Rubik:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F6; --surface:#fff; --ink:#14213D; --muted:#5B667A; --line:#DCE1EA; --soft:#F5F7FB;
+  --brand:#14213D; --focus:#2E6BE6;
+  --todo:#7A8499; --doing:#2E6BE6; --done:#1E9E6A;
+  --radius:14px;
+  --font:'Assistant',system-ui,sans-serif; --display:'Rubik','Assistant',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);min-height:100vh}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 60px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:26px 0 18px;flex-wrap:wrap}
+.top h1{margin:0;font:700 30px/1.1 var(--display);letter-spacing:-.01em}
+.top .date{color:var(--muted);font-size:15px;margin-top:4px}
+.top .acts{display:flex;gap:10px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:10px 16px;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:background .15s,border-color .15s}
+.btn:hover{background:var(--soft);border-color:#c5ccd9}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn.primary:hover{background:#22325a}
+.btn.danger{color:#B4233A}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn svg{width:18px;height:18px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:var(--surface);border:2px solid transparent;border-radius:var(--radius);padding:14px 16px;text-align:start;display:flex;flex-direction:column;gap:2px;box-shadow:0 1px 0 rgba(20,33,61,.06)}
+.stat .n{font:700 32px/1 var(--display)}
+.stat .l{color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.stat .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.stat[aria-pressed=true]{border-color:var(--brand)}
+.stat:hover{border-color:#c5ccd9}
+.stat[aria-pressed=true]:hover{border-color:var(--brand)}
+.progress{margin:14px 0 4px;display:flex;align-items:center;gap:12px;color:var(--muted);font-weight:600;font-size:14px}
+.bar{flex:1;height:10px;background:#dfe4ee;border-radius:99px;overflow:hidden;display:flex}
+.bar i{display:block;height:100%;transition:width .4s}
+.bar .b-done{background:var(--done)} .bar .b-doing{background:var(--doing)}
+
+/* toolbar */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 20px}
+.search{position:relative;flex:1 1 220px;min-width:200px}
+.search input{width:100%;border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:10px 40px 10px 12px}
+.search svg{position:absolute;inset-inline-start:auto;right:12px;top:50%;translate:0 -50%;width:18px;height:18px;color:var(--muted);pointer-events:none}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.sel{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:9px 10px;max-width:160px}
+.sel.on{border-color:var(--brand);background:#e9edf8;font-weight:600}
+.seg{display:inline-flex;background:#dfe4ee;border-radius:11px;padding:3px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:9px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(20,33,61,.15)}
+
+/* board */
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+.col{background:#E3E8F1;border-radius:18px;padding:12px;min-height:160px;transition:background .15s,outline-color .15s;outline:2px dashed transparent}
+.col.over{background:#d6def0;outline-color:var(--brand)}
+.col h2{margin:2px 4px 12px;font:600 17px/1 var(--display);display:flex;align-items:center;gap:8px}
+.col h2 .dot{width:12px;height:12px;border-radius:50%;background:var(--c)}
+.col h2 .cnt{margin-inline-start:auto;background:var(--surface);border-radius:99px;font-size:13px;padding:3px 10px;color:var(--muted)}
+.cards{display:flex;flex-direction:column;gap:10px}
+.empty{color:var(--muted);text-align:center;padding:26px 10px;font-size:15px}
+
+.card{position:relative;background:var(--surface);border-radius:13px;padding:13px 14px 12px 14px;padding-inline-start:18px;box-shadow:0 1px 2px rgba(20,33,61,.1);cursor:pointer;display:flex;gap:10px;transition:box-shadow .15s,transform .15s}
+.card::before{content:"";position:absolute;inset-block:10px;inset-inline-start:0;width:5px;border-radius:0 5px 5px 0;background:var(--u,#cfd5e1)}
+[dir=rtl] .card::before{border-radius:5px 0 0 5px}
+.card:hover{box-shadow:0 4px 14px rgba(20,33,61,.14)}
+.card.dragging{opacity:.4}
+.card.is-done .ttl{text-decoration:line-through;color:var(--muted)}
+.check{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--c,var(--todo));background:transparent;display:grid;place-items:center;margin-top:1px;padding:0;color:#fff}
+.check svg{width:14px;height:14px;opacity:0}
+.check[data-s=done]{background:var(--done);border-color:var(--done)} .check[data-s=done] svg{opacity:1}
+.check[data-s=doing]{border-color:var(--doing);background:conic-gradient(var(--doing) 50%,transparent 0)}
+.check:hover{transform:scale(1.1)}
+.cbody{min-width:0;flex:1}
+.ttl{font-weight:700;font-size:16.5px;line-height:1.35;margin:0 0 7px;overflow-wrap:anywhere}
+.tags{display:flex;flex-wrap:wrap;gap:5px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;padding:2px 9px;border-radius:99px;background:color-mix(in srgb,var(--c) 14%,#fff);color:color-mix(in srgb,var(--c) 75%,#000)}
+.pill.urg{background:var(--c);color:#fff}
+.pill.urg.light{color:#3a2b00}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:13px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted);font-weight:600;background:#fff}
+.tag i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.note-peek{margin-top:9px;font-size:14px;background:var(--soft);border-radius:9px;padding:6px 9px;color:#333c4e;display:flex;gap:6px;align-items:baseline;border-inline-start:3px solid var(--nc)}
+.note-peek b{color:var(--nc);flex:none}
+.note-peek span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.meta{margin-top:9px;display:flex;gap:12px;font-size:13.5px;color:var(--muted);font-weight:600;align-items:center}
+.meta .late{color:#B4233A}
+.meta svg{width:15px;height:15px;vertical-align:-3px;margin-inline-end:3px}
+
+/* list view */
+.list{display:flex;flex-direction:column;gap:8px}
+.list .card{align-items:center}
+.list .cbody{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.6fr);gap:6px 18px;align-items:center}
+.list .ttl{margin:0}
+.list .note-peek,.list .meta{margin-top:0}
+.statusbtn{border:0;font-weight:700;font-size:13px;padding:4px 11px;border-radius:99px;background:color-mix(in srgb,var(--c) 15%,#fff);color:color-mix(in srgb,var(--c) 80%,#000)}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(20,33,61,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.scrim.open{display:flex}
+.sheet{background:var(--surface);border-radius:20px;width:min(680px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 20px 60px rgba(20,33,61,.35)}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.sheet-h h2{margin:0;font:600 20px/1 var(--display)}
+.sheet-b{padding:20px 22px;display:flex;flex-direction:column;gap:20px}
+.sheet-f{display:flex;gap:10px;padding:14px 22px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--surface);align-items:center}
+.sheet-f .sp{flex:1}
+.lbl{font-weight:700;font-size:15px;margin-bottom:8px;display:block}
+.in{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 13px;background:#fff}
+.in.big{font:600 20px/1.3 var(--display)}
+textarea.in{resize:vertical;min-height:72px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:5px 13px;font-weight:600;font-size:14.5px;display:inline-flex;align-items:center;gap:6px}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--c)}
+.chip:hover{border-color:#b6bfd0}
+.chip[aria-pressed=true]{background:var(--c);border-color:var(--c);color:#fff}
+.chip[aria-pressed=true] i{background:#fff}
+.chip.light[aria-pressed=true]{color:#3a2b00} .chip.light[aria-pressed=true] i{background:#3a2b00}
+.stseg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stseg button{border:2px solid var(--line);background:#fff;border-radius:12px;padding:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.stseg button i{width:11px;height:11px;border-radius:50%;background:var(--c)}
+.stseg button[aria-pressed=true]{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.noteform{background:var(--soft);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.noteform .row{display:flex;gap:8px;align-items:flex-end}
+.noteform textarea{min-height:56px}
+.notes{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.nt{display:flex;gap:10px;background:#fff;border:1px solid var(--line);border-inline-start:4px solid var(--nc);border-radius:11px;padding:9px 12px}
+.nt .tx{flex:1;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.nt .hd{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.nt .hd b{color:var(--nc)}
+.x{border:0;background:transparent;color:var(--muted);width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none;padding:0}
+.x:hover{background:#eceff5;color:#B4233A}
+.x svg{width:16px;height:16px}
+.hint{color:var(--muted);font-size:14px;margin:0}
+
+/* settings */
+.fset{border:1px solid var(--line);border-radius:14px;padding:14px}
+.fset .nm{font:600 17px var(--display);border:0;border-bottom:2px dashed var(--line);border-radius:0;padding:4px 2px;width:100%;background:transparent;margin-bottom:12px}
+.fset .nm:focus{border-bottom-color:var(--brand)}
+.opt{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.opt .sw{width:26px;height:26px;border-radius:8px;border:0;background:var(--c);flex:none}
+.opt input{flex:1;border:1px solid var(--line);border-radius:9px;padding:6px 10px}
+.addopt{display:flex;gap:8px;margin-top:8px}
+.addopt input{flex:1;border:1px dashed #b6bfd0;border-radius:9px;padding:6px 10px}
+
+.toast{position:fixed;bottom:22px;left:50%;translate:-50% 0;background:var(--brand);color:#fff;padding:10px 18px;border-radius:99px;font-weight:600;z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+
+/* focus, next step, gentle hints */
+.star{flex:none;align-self:flex-start;border:0;background:transparent;width:32px;height:32px;border-radius:9px;padding:0;display:grid;place-items:center;color:#b3bccd;margin:-3px -4px 0 -6px}
+.star svg{width:21px;height:21px}
+.star:hover{background:var(--soft);color:#8793aa}
+.star[aria-pressed=true]{color:#E5A100}
+.next{margin:0 0 8px;font-size:14.5px;color:#1f2d4d;display:flex;gap:6px;align-items:baseline}
+.next b{flex:none;color:var(--doing);font-size:13.5px}
+.snooze{border:1px solid var(--line);background:#fff;border-radius:99px;font-size:12.5px;font-weight:700;padding:1px 10px;color:var(--muted)}
+.snooze:hover{background:var(--soft)}
+.softnote{background:#FFF7E0;border:1px solid #F1DDA0;color:#5c4710;border-radius:11px;padding:9px 13px;font-size:14.5px;margin:0 0 12px}
+.col .softnote{margin:0 0 10px;font-size:13.5px}
+.followl{display:flex;gap:10px;align-items:center;font-weight:600;font-size:14.5px}
+.followl .in{max-width:190px;padding:7px 10px}
+.fsec{margin-top:26px}
+.fsec h3{margin:0 0 4px;font:600 18px/1.2 var(--display)}
+.fsec .hint{margin-bottom:10px}
+.fgrid{max-width:820px}
+.meta .late{color:#9A6700}
+/* projects */
+.phd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 16px;flex-wrap:wrap}
+.phd h2{margin:0;font:700 24px/1.1 var(--display)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.pcard{position:relative;text-align:start;background:var(--surface);border:0;border-radius:var(--radius);padding:18px 18px 16px;box-shadow:0 1px 2px rgba(20,33,61,.1);border-top:6px solid var(--pc);display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s}
+.pcard:hover{box-shadow:0 6px 18px rgba(20,33,61,.16)}
+.pcard h3{margin:0;font:600 19px/1.25 var(--display)}
+.pcard p{margin:0;color:var(--muted);font-size:15px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pmeta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-weight:600;font-size:13.5px}
+.pmeta svg{width:15px;height:15px;vertical-align:-3px;margin-inline-end:3px}
+.phead{background:var(--surface);border-radius:var(--radius);border-top:6px solid var(--pc);padding:18px 20px;margin:6px 0 18px;display:grid;grid-template-columns:1fr auto;gap:12px 20px;align-items:start;box-shadow:0 1px 2px rgba(20,33,61,.1)}
+.phead h2{margin:0;font:700 26px/1.2 var(--display)}
+.phead p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.pact{display:flex;gap:8px;flex-wrap:wrap}
+.pprog{grid-column:1/-1;display:flex;align-items:center;gap:14px;color:var(--muted);font-weight:600;font-size:14px}
+.pprog .bar{max-width:420px}
+.two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+.sh{margin:0 0 10px;font:600 18px/1 var(--display)}
+.two aside{background:#E3E8F1;border-radius:18px;padding:14px}
+.res{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.res .nt .tt{font-weight:700}
+.res a{color:var(--focus);font-weight:600;overflow-wrap:anywhere}
+.res .val{color:#333c4e;overflow-wrap:anywhere}
+.swb{display:flex;gap:8px;flex-wrap:wrap}
+.swb button{width:34px;height:34px;border-radius:50%;border:3px solid #fff;background:var(--c);box-shadow:0 0 0 2px transparent;padding:0}
+.swb button[aria-pressed=true]{box-shadow:0 0 0 2px var(--ink)}
+.tag.proj{color:color-mix(in srgb,var(--c) 70%,#000);border-color:color-mix(in srgb,var(--c) 40%,#fff);background:color-mix(in srgb,var(--c) 10%,#fff);cursor:pointer}
+.tag.proj:hover{background:color-mix(in srgb,var(--c) 20%,#fff)}
+@media (max-width:860px){
+  .two{grid-template-columns:1fr}
+  .phead{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .board{grid-template-columns:1fr}
+  .list .cbody{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .wrap{padding:0 14px 50px}
+  .top h1{font-size:25px}
+  .grid2{grid-template-columns:1fr}
+  .btn .t{display:none} .btn.primary .t{display:inline}
+  .sheet{border-radius:20px 20px 0 0;align-self:flex-end;max-height:94vh}
+  .scrim{padding:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>המשימות שלי</h1>
+      <div class="date" id="today"></div>
+    </div>
+    <div class="acts">
+      <div class="seg" role="group" aria-label="אזור">
+        <button data-page="focus" aria-pressed="false">היום</button>
+        <button data-page="tasks" aria-pressed="true">משימות</button>
+        <button data-page="projects" aria-pressed="false">פרויקטים</button>
+      </div>
+      <button class="btn" id="btnSettings" title="עריכת סיווגים">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+        <span class="t">עריכת סיווגים</span>
+      </button>
+      <button class="btn primary" id="btnNew">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="t">משימה חדשה</span>
+      </button>
+    </div>
+  </header>
+
+<div id="focusPage" hidden></div>
+<div id="tasksPage">
+  <section class="stats" id="stats" aria-label="סיכום לפי סטטוס"></section>
+  <div class="progress"><span id="pct"></span><div class="bar" id="bar"></div></div>
+
+  <div class="tools">
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="חיפוש במשימות ובהערות" aria-label="חיפוש">
+    </label>
+    <div class="filters" id="filters"></div>
+    <button class="btn ghost" id="clearF" hidden>נקה סינון</button>
+    <div class="seg" role="group" aria-label="תצוגה">
+      <button data-view="board" aria-pressed="true">לוח</button>
+      <button data-view="list" aria-pressed="false">רשימה</button>
+    </div>
+  </div>
+
+  <div id="hints"></div>
+  <main id="main"></main>
+</div>
+<div id="projPage" hidden></div>
+</div>
+
+<div class="scrim" id="taskScrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="taskH" id="taskSheet"></div></div>
+<div class="scrim" id="projScrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="projH" id="projSheet"></div></div>
+<div class="scrim" id="setScrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setH" id="setSheet"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const $ = (s, e = document) => e.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const STATUS = [
+  {id:'todo', label:'לא בוצע', c:'var(--todo)'},
+  {id:'doing', label:'בתהליך', c:'var(--doing)'},
+  {id:'done', label:'בוצע', c:'var(--done)'}
+];
+const NOTE_TYPES = [
+  {id:'note', label:'הערה', c:'#5B667A'},
+  {id:'wait', label:'ממתין ל…', c:'#8A6D1F'},
+  {id:'issue', label:'בעיה', c:'#C81E3A'},
+  {id:'talk', label:'לדבר עם…', c:'#7C5CFA'}
+];
+const PALETTE = ['#7C5CFA','#0EA5A4','#D6409F','#8A6D3B','#3B82F6','#16A34A','#E11D48','#64748B'];
+const LIGHT = ['#E5B000'];
+const ICON = {
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>'
+};
+
+/* ---------- state ---------- */
+const mkOpts = (labels, colors) => labels.map((l, i) => ({id: uid(), label: l, color: colors ? colors[i] : PALETTE[i % PALETTE.length]}));
+function seed() {
+  const urg = mkOpts(['דחוף מאוד','גבוהה','בינונית','נמוכה'], ['#C81E3A','#F26B1D','#E5B000','#6B7A90']);
+  const cat = mkOpts(['עבודה','בית','כספים','למידה']);
+  const who = mkOpts(['אני','צוות','ספק חיצוני']);
+  const proj = mkOpts(['קל','בינוני','מורכב']);
+  const kind = mkOpts(['שיחת טלפון','פגישה','מסמך','קנייה']);
+  const fields = [
+    {id:'urgency', name:'דחיפות', options:urg},
+    {id:'f1', name:'קטגוריה', options:cat},
+    {id:'f2', name:'אחראי', options:who},
+    {id:'f3', name:'רמת מאמץ', options:proj},
+    {id:'f4', name:'סוג פעולה', options:kind}
+  ];
+  const o = (fi, i) => fields[fi].options[i].id;
+  const d = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.toISOString().slice(0,10); };
+  const now = Date.now();
+  const nt = (type, text, ago) => ({id: uid(), type, text, ts: now - ago * 3600e3});
+  const task = (title, status, f, due, notes) => ({id: uid(), title, status, f, due, notes, project: '', created: now});
+  const tasks = [
+    task('להתקשר לספק המזגנים ולקבוע מועד התקנה','doing',{urgency:o(0,1),f1:o(1,1),f2:o(2,0),f3:o(3,1),f4:o(4,0)},d(1),[
+      nt('talk','לדבר עם רונית מהמשרד - היא קיבלה הצעה ממתחרה',26),
+      nt('wait','ממתין לחזרה של הספק עם מחיר סופי',3)]),
+    task('להכין מצגת לישיבת הצוות','todo',{urgency:o(0,0),f1:o(1,0),f2:o(2,0),f3:o(3,2),f4:o(4,2)},d(0),[
+      nt('issue','חסרים נתוני המכירות של הרבעון האחרון',5)]),
+    task('לשלם חשבון ארנונה','todo',{urgency:o(0,1),f1:o(1,2),f2:o(2,0),f3:o(3,2),f4:o(4,2)},d(-2),[]),
+    task('לבדוק הצעות מחיר לריהוט למשרד החדש','doing',{urgency:o(0,2),f1:o(1,0),f2:o(2,1),f3:o(3,0),f4:o(4,1)},d(6),[
+      nt('note','שתי הצעות כבר התקבלו, חסרה עוד אחת להשוואה',30)]),
+    task('לקנות מדפים וברגים לחדר העבודה','todo',{urgency:o(0,3),f1:o(1,1),f2:o(2,0),f3:o(3,1),f4:o(4,3)},d(10),[]),
+    task('לסיים קורס אקסל - שיעור 4','todo',{urgency:o(0,3),f1:o(1,3),f2:o(2,0),f3:o(3,2),f4:o(4,2)},'',[]),
+    task('לשלוח חשבונית ללקוח','done',{urgency:o(0,1),f1:o(1,2),f2:o(2,0),f3:o(3,2),f4:o(4,2)},d(-4),[
+      nt('note','נשלחה במייל, אושרה קבלה',70)])
+  ];
+  const projects = [
+    {id: uid(), name:'המשרד החדש', desc:'מעבר למשרד חדש: חוזה, ריהוט ומיזוג אוויר', color:'#3B82F6', due:d(21), created:now, resources:[
+      {id: uid(), type:'doc', title:'הסכם שכירות', value:'https://example.com/lease.pdf'},
+      {id: uid(), type:'contact', title:'דנה, מתווכת', value:'050-1234567'},
+      {id: uid(), type:'general', title:'תקציב ריהוט', value:'עד 25,000 ש"ח'}]},
+    {id: uid(), name:'שיפוץ חדר העבודה', desc:'צביעה, מדפים ותאורה', color:'#D6409F', due:'', created:now, resources:[
+      {id: uid(), type:'link', title:'השראה לעיצוב', value:'https://example.com/ideas'}]}
+  ];
+  tasks[6].doneAt = now - 50 * 3600e3; tasks[1].focus = true; tasks[1].next = 'לבקש מדנה את נתוני המכירות ולפתוח שקף ראשון';
+  tasks[0].project = projects[0].id; tasks[3].project = projects[0].id; tasks[4].project = projects[1].id;
+  return {fields, tasks, projects};
+}
+const KEY = 'task-app-he-v1';
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+if (!S || !S.fields || !S.tasks) S = seed();
+if (!S.projects) S.projects = [];
+S.tasks.forEach(t => { if (t.project === undefined) t.project = ''; });
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const ui = {view:'board', q:'', status:'all', f:{}, proj:'', page:'tasks', pid:null};
+const hasFilter = () => !!(ui.q || ui.proj || ui.status !== 'all' || Object.values(ui.f).some(Boolean));
+const STAR = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6-4.5-4.2 6.1-.8z"/></svg>';
+const STARO = STAR.replace('fill="currentColor"', 'fill="none"');
+const FOCUS_SOFT_CAP = 3, WIP_SOFT_CAP = 3;
+const starBtn = t => t.status === 'done' ? '' : `<button class="star" data-act="focus" aria-pressed="${!!t.focus}" aria-label="מיקוד להיום" title="${t.focus ? 'הסר ממיקוד היום' : 'הוסף למיקוד היום'}">${t.focus ? STAR : STARO}</button>`;
+function projTag(t) {
+  const p = t.project && S.projects.find(x => x.id === t.project);
+  if (!p || (ui.page === 'projects' && ui.pid)) return '';
+  return `<span class="tag proj" style="--c:${p.color}" data-goproj="${p.id}" title="פתיחת הפרויקט"><i></i>${esc(p.name)}</span>`;
+}
+
+/* ---------- helpers ---------- */
+const field = id => S.fields.find(f => f.id === id);
+const optOf = (fid, oid) => (field(fid)?.options || []).find(o => o.id === oid);
+const urgRank = t => { const i = field('urgency').options.findIndex(o => o.id === t.f.urgency); return i < 0 ? 99 : i; };
+const todayStr = () => { const t = new Date(); t.setMinutes(t.getMinutes() - t.getTimezoneOffset()); return t.toISOString().slice(0,10); };
+function dueText(due) {
+  if (!due) return '';
+  const diff = Math.round((new Date(due) - new Date(todayStr())) / 864e5);
+  if (diff === 0) return 'היום';
+  if (diff === 1) return 'מחר';
+  if (diff === -1) return 'אתמול';
+  return new Date(due).toLocaleDateString('he-IL', {day:'numeric', month:'short'});
+}
+const fmtTs = ts => new Date(ts).toLocaleString('he-IL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+const noteType = id => NOTE_TYPES.find(n => n.id === id) || NOTE_TYPES[0];
+const isLight = c => LIGHT.includes(c);
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 1800); }
+
+function visible() {
+  const q = ui.q.trim().toLowerCase();
+  return S.tasks.filter(t => {
+    if (ui.status !== 'all' && t.status !== ui.status) return false;
+    if (ui.proj && t.project !== ui.proj) return false;
+    for (const [fid, oid] of Object.entries(ui.f)) if (oid && t.f[fid] !== oid) return false;
+    if (q && !(t.title + ' ' + t.notes.map(n => n.text).join(' ')).toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a, b) => urgRank(a) - urgRank(b) || (a.due || '9') .localeCompare(b.due || '9') || b.created - a.created);
+}
+
+/* ---------- render: stats ---------- */
+function renderStats() {
+  const c = {todo:0, doing:0, done:0};
+  S.tasks.forEach(t => c[t.status]++);
+  const total = S.tasks.length;
+  const items = [{id:'all', label:'כל המשימות', n:total, c:'var(--ink)'}, ...STATUS.map(s => ({id:s.id, label:s.label, n:c[s.id], c:s.c}))];
+  $('#stats').innerHTML = items.map(i => `<button class="stat" data-st="${i.id}" aria-pressed="${ui.status === i.id}" style="--c:${i.c}"><span class="n">${i.n}</span><span class="l"><span class="dot"></span>${i.label}</span></button>`).join('');
+  const pct = total ? Math.round(c.done / total * 100) : 0;
+  const week = S.tasks.filter(t => t.doneAt && Date.now() - t.doneAt < 7 * 864e5).length;
+  $('#pct').textContent = total ? `${pct}% הושלמו${week ? `, ${week} בשבוע האחרון` : ''}` : 'אין משימות עדיין';
+  $('#bar').innerHTML = total ? `<i class="b-done" style="width:${c.done/total*100}%"></i><i class="b-doing" style="width:${c.doing/total*100}%"></i>` : '';
+}
+
+/* ---------- render: filters ---------- */
+function renderFilters() {
+  const projSel = S.projects.length ? `<select class="sel ${ui.proj ? 'on' : ''}" data-ff="proj" aria-label="סינון לפי פרויקט"><option value="">פרויקט: הכול</option>${S.projects.map(p => `<option value="${p.id}" ${ui.proj === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>` : '';
+  $('#filters').innerHTML = projSel + S.fields.map(f => `<select class="sel ${ui.f[f.id] ? 'on' : ''}" data-ff="${f.id}" aria-label="סינון לפי ${esc(f.name)}">
+    <option value="">${esc(f.name)}: הכול</option>${f.options.map(o => `<option value="${o.id}" ${ui.f[f.id] === o.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`).join('');
+  $('#clearF').hidden = !hasFilter();
+}
+
+/* ---------- render: cards ---------- */
+function cardHTML(t) {
+  const urg = optOf('urgency', t.f.urgency);
+  const tags = S.fields.slice(1).map(f => { const o = optOf(f.id, t.f[f.id]); return o ? `<span class="tag" style="--c:${o.color}" title="${esc(f.name)}"><i></i>${esc(o.label)}</span>` : ''; }).join('');
+  const last = t.notes[t.notes.length - 1];
+  const nt = last ? noteType(last.type) : null;
+  const late = t.due && t.due < todayStr() && t.status !== 'done';
+  const st = STATUS.find(s => s.id === t.status);
+  return `<article class="card ${t.status === 'done' ? 'is-done' : ''}" data-id="${t.id}" draggable="true" style="--u:${urg ? urg.color : '#cfd5e1'}" tabindex="0">
+    <button class="check" data-act="toggle" data-s="${t.status}" style="--c:${st.c}" aria-label="סימון כבוצע" title="${t.status === 'done' ? 'החזר ללא בוצע' : 'סמן כבוצע'}">${ICON.check}</button>
+    <div class="cbody">
+      <h3 class="ttl">${esc(t.title)}</h3>
+      ${t.next && t.status !== 'done' ? `<div class="next"><b>הצעד הבא</b><span>${esc(t.next)}</span></div>` : ''}
+      <div class="tags">${urg ? `<span class="pill urg ${isLight(urg.color) ? 'light' : ''}" style="--c:${urg.color}">${esc(urg.label)}</span>` : ''}${projTag(t)}${tags}</div>
+      ${last ? `<div class="note-peek" style="--nc:${nt.c}"><b>${nt.label}</b><span>${esc(last.text)}</span></div>` : ''}
+      ${(t.due || t.notes.length) ? `<div class="meta">${t.due ? `<span class="${late ? 'late' : ''}">${ICON.cal}${dueText(t.due)}${late ? ' - עבר התאריך' : ''}</span>${late ? '<button class="snooze" data-act="snooze">דחה למחר</button>' : ''}` : ''}${t.notes.length ? `<span>${ICON.chat}${t.notes.length} הערות</span>` : ''}</div>` : ''}
+    </div>${starBtn(t)}</article>`;
+}
+function listRow(t) {
+  const urg = optOf('urgency', t.f.urgency);
+  const tags = S.fields.slice(1).map(f => { const o = optOf(f.id, t.f[f.id]); return o ? `<span class="tag" style="--c:${o.color}" title="${esc(f.name)}"><i></i>${esc(o.label)}</span>` : ''; }).join('');
+  const last = t.notes[t.notes.length - 1], nt = last && noteType(last.type);
+  const late = t.due && t.due < todayStr() && t.status !== 'done';
+  const st = STATUS.find(s => s.id === t.status);
+  return `<article class="card ${t.status === 'done' ? 'is-done' : ''}" data-id="${t.id}" style="--u:${urg ? urg.color : '#cfd5e1'}" tabindex="0">
+    <button class="check" data-act="toggle" data-s="${t.status}" style="--c:${st.c}" aria-label="סימון כבוצע">${ICON.check}</button>
+    <div class="cbody">
+      <div><h3 class="ttl">${esc(t.title)}</h3>
+        ${t.next && t.status !== 'done' ? `<div class="next" style="margin:4px 0 0"><b>הצעד הבא</b><span>${esc(t.next)}</span></div>` : ''}
+        <div class="tags" style="margin-top:6px">${urg ? `<span class="pill urg ${isLight(urg.color) ? 'light' : ''}" style="--c:${urg.color}">${esc(urg.label)}</span>` : ''}${projTag(t)}${tags}</div></div>
+      <div>
+        ${last ? `<div class="note-peek" style="--nc:${nt.c}"><b>${nt.label}</b><span>${esc(last.text)}</span></div>` : ''}
+        <div class="meta" style="margin-top:${last ? 8 : 0}px"><button class="statusbtn" data-act="cycle" style="--c:${st.c}" title="לחיצה משנה סטטוס">${st.label}</button>${t.due ? `<span class="${late ? 'late' : ''}">${ICON.cal}${dueText(t.due)}${late ? ' - עבר התאריך' : ''}</span>${late ? '<button class="snooze" data-act="snooze">דחה למחר</button>' : ''}` : ''}${t.notes.length ? `<span>${ICON.chat}${t.notes.length}</span>` : ''}</div>
+      </div>
+    </div>${starBtn(t)}</article>`;
+}
+function renderMain() {
+  const items = visible();
+  if (!S.tasks.length) { $('#main').innerHTML = `<div class="empty">אין משימות עדיין. לחצו על "משימה חדשה" כדי להתחיל.</div>`; return; }
+  if (ui.view === 'board') {
+    $('#main').innerHTML = `<div class="board">${STATUS.map(s => {
+      const col = items.filter(t => t.status === s.id);
+      return `<section class="col" data-col="${s.id}" aria-label="${s.label}"><h2 style="--c:${s.c}"><span class="dot"></span>${s.label}<span class="cnt">${col.length}</span></h2>
+        ${s.id === 'doing' && S.tasks.filter(t => t.status === 'doing').length > WIP_SOFT_CAP ? `<div class="softnote">יש ${S.tasks.filter(t => t.status === 'doing').length} משימות בתהליך במקביל. מעבר בין משימות עולה בריכוז, ולרוב עדיף לסיים כמה לפני שפותחים עוד.</div>` : ''}
+        <div class="cards">${col.map(cardHTML).join('') || `<div class="empty">${s.id === 'done' ? 'גררו לכאן משימות שהושלמו' : 'אין משימות כאן'}</div>`}</div></section>`;
+    }).join('')}</div>`;
+  } else {
+    $('#main').innerHTML = items.length ? `<div class="list">${items.map(listRow).join('')}</div>` : `<div class="empty">לא נמצאו משימות. נסו לנקות את הסינון.</div>`;
+  }
+}
+function renderHints() {
+  const open = S.tasks.filter(t => t.status !== 'done');
+  const top = S.fields[0].options.slice(0, 2).map(o => o.id);
+  const hot = open.filter(t => top.includes(t.f.urgency)).length;
+  $('#hints').innerHTML = open.length >= 5 && hot / open.length > 0.4
+    ? `<div class="softnote">${hot} מתוך ${open.length} משימות פתוחות מסומנות דחופות. כשהכול דחוף, הסימון מפסיק לעזור לבחור. כדאי לשמור אותו למה שבאמת לא יכול לחכות.</div>` : '';
+}
+function renderFocus() {
+  const el = $('#focusPage'), today = todayStr(), open = S.tasks.filter(t => t.status !== 'done');
+  const picked = open.filter(t => t.focus).sort((a, b) => urgRank(a) - urgRank(b));
+  const due = open.filter(t => !t.focus && t.due && t.due <= today);
+  const follow = open.map(t => ({t, n: t.notes.filter(n => n.type === 'wait' && n.follow && n.follow <= today).pop()})).filter(x => x.n && !x.t.focus && !due.includes(x.t));
+  const dayStr = new Date().toDateString();
+  const doneToday = S.tasks.filter(t => t.doneAt && new Date(t.doneAt).toDateString() === dayStr);
+  const rows = ts => `<div class="list">${ts.map(listRow).join('')}</div>`;
+  el.innerHTML = `<div class="phd"><h2>מה עושים היום</h2></div><div class="fgrid">
+    <p class="hint" style="margin-bottom:12px">בחרו כמה משימות להתמקד בהן היום, בלחיצה על הכוכב. רשימה קצרה קל יותר להתחיל ממנה.</p>
+    ${picked.length > FOCUS_SOFT_CAP ? `<div class="softnote">בחרתם ${picked.length} משימות. עד ${FOCUS_SOFT_CAP} לרוב קל לסיים, אבל זו החלטה שלכם.</div>` : ''}
+    ${picked.length ? rows(picked) : `<div class="empty">עוד לא בחרתם משימות להיום. לחצו על הכוכב ליד משימה כדי להוסיף אותה לכאן.</div>`}
+    ${due.length ? `<div class="fsec"><h3>הגיע המועד שלהן</h3><p class="hint">משימות עם תאריך יעד של היום או קודם. אפשר לבחור, לדחות או לוותר.</p>${rows(due)}</div>` : ''}
+    ${follow.length ? `<div class="fsec"><h3>הגיע הזמן לחזור אליהם</h3><p class="hint">משימות שממתינות למישהו, ותאריך המעקב שקבעתם הגיע.</p>${rows(follow.map(x => x.t))}</div>` : ''}
+    ${doneToday.length ? `<div class="fsec"><h3>הושלמו היום (${doneToday.length})</h3>${rows(doneToday)}</div>` : ''}
+  </div>`;
+}
+function renderAll() { renderStats(); renderFilters(); renderHints(); renderMain(); if (ui.page === 'projects') renderProjects(); if (ui.page === 'focus') renderFocus(); }
+
+/* ---------- task dialog ---------- */
+let draft = null, isNew = false, noteTxt = '', noteTyp = 'note', noteFollow = '';
+function openTask(id, pid) {
+  isNew = !id;
+  draft = id ? JSON.parse(JSON.stringify(S.tasks.find(t => t.id === id)))
+             : {id: uid(), title:'', status: ui.status !== 'all' ? ui.status : 'todo', f:{...Object.fromEntries(Object.entries(ui.f).filter(([,v]) => v))}, due:'', notes:[], project: pid || ui.proj || '', created: Date.now()};
+  noteTxt = ''; noteTyp = 'note'; noteFollow = '';
+  drawTask(); $('#taskScrim').classList.add('open');
+  setTimeout(() => $('#fTitle')?.focus(), 30);
+}
+function drawTask() {
+  const chipGroup = f => `<div><span class="lbl">${esc(f.name)}</span><div class="chips">${f.options.map(o => `<button type="button" class="chip ${isLight(o.color) ? 'light' : ''}" style="--c:${o.color}" data-pick="${f.id}" data-o="${o.id}" aria-pressed="${draft.f[f.id] === o.id}"><i></i>${esc(o.label)}</button>`).join('') || '<span class="hint">אין אפשרויות. אפשר להוסיף ב"עריכת סיווגים".</span>'}</div></div>`;
+  $('#taskSheet').innerHTML = `
+    <div class="sheet-h"><h2 id="taskH">${isNew ? 'משימה חדשה' : 'עריכת משימה'}</h2><button class="x" data-close aria-label="סגירה">${ICON.x}</button></div>
+    <div class="sheet-b">
+      <div><label class="lbl" for="fTitle">מה צריך לעשות?</label><input id="fTitle" class="in big" value="${esc(draft.title)}" placeholder="למשל: להתקשר לספק" autocomplete="off"></div>
+      <div><label class="lbl" for="fNext">הצעד הבא</label><input id="fNext" class="in" value="${esc(draft.next || '')}" placeholder="הפעולה הקטנה הראשונה, למשל: להתקשר לדני ולשאול על המחיר" autocomplete="off"><p class="hint" style="margin-top:6px">צעד קטן ומוגדר מקל על ההתחלה. לא חובה.</p></div>
+      <div><span class="lbl">סטטוס</span><div class="stseg">${STATUS.map(s => `<button type="button" data-status="${s.id}" style="--c:${s.c}" aria-pressed="${draft.status === s.id}"><i></i>${s.label}</button>`).join('')}</div></div>
+      ${chipGroup(S.fields[0])}
+      <div><span class="lbl">פרויקט</span><div class="chips">${S.projects.map(p => `<button type="button" class="chip" style="--c:${p.color}" data-projpick="${p.id}" aria-pressed="${draft.project === p.id}"><i></i>${esc(p.name)}</button>`).join('') || '<span class="hint">אין פרויקטים עדיין. אפשר ליצור בלשונית "פרויקטים".</span>'}</div></div>
+      <div><label class="lbl" for="fDue">תאריך יעד</label><div style="display:flex;gap:8px"><input id="fDue" type="date" class="in" style="max-width:220px" value="${draft.due}">${draft.due ? '<button type="button" class="btn ghost" data-nodue>הסר תאריך</button>' : ''}</div></div>
+      ${S.fields.slice(1).map(chipGroup).join('')}
+      <div>
+        <span class="lbl">הערות (${draft.notes.length})</span>
+        <div class="noteform">
+          <div class="chips" role="group" aria-label="סוג הערה">${NOTE_TYPES.map(n => `<button type="button" class="chip" style="--c:${n.c}" data-ntype="${n.id}" aria-pressed="${noteTyp === n.id}"><i></i>${n.label}</button>`).join('')}</div>
+          <div class="row"><textarea id="fNote" class="in" placeholder="${{note:'כתבו הערה',wait:'ממתין למי או למה?',issue:'מה הבעיה, ומה היה פותר אותה? מי יכול לעזור?',talk:'עם מי צריך לדבר, ועל מה?'}[noteTyp]}">${esc(noteTxt)}</textarea><button type="button" class="btn primary" data-addnote>הוסף</button></div>
+          ${noteTyp === 'wait' ? `<label class="followl">מתי לחזור אליהם? <input type="date" id="fFollow" class="in" value="${noteFollow}"><span class="hint">לא חובה. ביום הזה המשימה תופיע ב"היום".</span></label>` : ''}
+        </div>
+        <div class="notes">${[...draft.notes].reverse().map(n => { const t = noteType(n.type); return `<div class="nt" style="--nc:${t.c}"><div class="tx"><div class="hd"><b>${t.label}</b> · ${fmtTs(n.ts)}${n.follow ? ` · לחזור אליהם: ${dueText(n.follow)}` : ''}</div>${esc(n.text)}</div><button type="button" class="x" data-delnote="${n.id}" aria-label="מחיקת הערה">${ICON.x}</button></div>`; }).join('')}</div>
+      </div>
+    </div>
+    <div class="sheet-f">
+      ${isNew ? '' : '<button type="button" class="btn danger" data-deltask>מחק משימה</button>'}
+      <span class="sp"></span>
+      <button type="button" class="btn" data-close>ביטול</button>
+      <button type="button" class="btn primary" data-savetask>שמירה</button>
+    </div>`;
+}
+function closeTask() { $('#taskScrim').classList.remove('open'); draft = null; }
+function addNote() {
+  const text = (noteTxt = $('#fNote').value).trim();
+  if (!text) { $('#fNote').focus(); return; }
+  draft.notes.push({id: uid(), type: noteTyp, text, ts: Date.now(), follow: noteTyp === 'wait' ? ($('#fFollow')?.value || '') : ''});
+  noteTxt = ''; noteFollow = ''; drawTask(); $('#fNote').focus();
+}
+function saveTask() {
+  draft.title = $('#fTitle').value.trim();
+  if (!draft.title) { $('#fTitle').focus(); $('#fTitle').style.borderColor = '#C81E3A'; toast('צריך לכתוב שם למשימה'); return; }
+  draft.next = $('#fNext').value.trim();
+  const pending = $('#fNote').value.trim();
+  if (pending) draft.notes.push({id: uid(), type: noteTyp, text: pending, ts: Date.now(), follow: noteTyp === 'wait' ? ($('#fFollow')?.value || '') : ''});
+  if (draft.status === 'done') draft.doneAt = draft.doneAt || Date.now(); else delete draft.doneAt;
+  const i = S.tasks.findIndex(t => t.id === draft.id);
+  if (i >= 0) S.tasks[i] = draft; else S.tasks.push(draft);
+  save(); closeTask(); renderAll(); toast('נשמר');
+}
+$('#taskSheet').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  draft.title = $('#fTitle')?.value ?? draft.title; noteTxt = $('#fNote')?.value ?? noteTxt;
+  draft.next = $('#fNext')?.value ?? draft.next; noteFollow = $('#fFollow')?.value ?? noteFollow;
+  if (b.hasAttribute('data-close')) return closeTask();
+  if (b.dataset.status) { draft.status = b.dataset.status; return drawTask(); }
+  if (b.dataset.pick) { draft.f[b.dataset.pick] = draft.f[b.dataset.pick] === b.dataset.o ? '' : b.dataset.o; return drawTask(); }
+  if (b.dataset.projpick) { draft.project = draft.project === b.dataset.projpick ? '' : b.dataset.projpick; return drawTask(); }
+  if (b.dataset.ntype) { noteTyp = b.dataset.ntype; drawTask(); return $('#fNote').focus(); }
+  if (b.hasAttribute('data-addnote')) return addNote();
+  if (b.dataset.delnote) { draft.notes = draft.notes.filter(n => n.id !== b.dataset.delnote); return drawTask(); }
+  if (b.hasAttribute('data-nodue')) { draft.due = ''; return drawTask(); }
+  if (b.hasAttribute('data-savetask')) return saveTask();
+  if (b.hasAttribute('data-deltask')) {
+    if (!confirm('למחוק את המשימה לצמיתות?')) return;
+    S.tasks = S.tasks.filter(t => t.id !== draft.id); save(); closeTask(); renderAll(); toast('המשימה נמחקה');
+  }
+});
+$('#taskSheet').addEventListener('change', e => { if (e.target.id === 'fDue') { draft.title = $('#fTitle').value; draft.next = $('#fNext').value; noteTxt = $('#fNote').value; noteFollow = $('#fFollow')?.value ?? noteFollow; draft.due = e.target.value; drawTask(); } });
+$('#taskSheet').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.id === 'fTitle') { e.preventDefault(); saveTask(); }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.id === 'fNote') { e.preventDefault(); addNote(); }
+});
+$('#taskScrim').addEventListener('mousedown', e => { if (e.target.id === 'taskScrim') closeTask(); });
+
+/* ---------- settings dialog ---------- */
+function drawSettings() {
+  $('#setSheet').innerHTML = `
+    <div class="sheet-h"><h2 id="setH">עריכת סיווגים</h2><button class="x" data-close aria-label="סגירה">${ICON.x}</button></div>
+    <div class="sheet-b">
+      <p class="hint">חמישה סיווגים לכל משימה: דחיפות, ועוד ארבעה שאפשר להתאים אישית. אפשר לשנות שם, להוסיף אפשרויות, לשנות צבע ולמחוק. שינויים נשמרים אוטומטית.</p>
+      ${S.fields.map(f => `<div class="fset" data-fid="${f.id}">
+        <input class="nm in" value="${esc(f.name)}" aria-label="שם הסיווג" data-fname>
+        ${f.options.map(o => `<div class="opt" data-oid="${o.id}"><button class="sw" style="--c:${o.color}" data-color aria-label="שינוי צבע" title="שינוי צבע"></button><input value="${esc(o.label)}" aria-label="שם האפשרות" data-olabel><button class="x" data-delopt aria-label="מחיקת אפשרות">${ICON.x}</button></div>`).join('')}
+        <div class="addopt"><input placeholder="אפשרות חדשה" data-newopt><button class="btn" data-addopt>הוסף</button></div>
+      </div>`).join('')}
+      <button class="btn" data-reset style="align-self:flex-start">שחזור נתוני דוגמה</button>
+    </div>
+    <div class="sheet-f"><span class="sp"></span><button class="btn primary" data-close>סיום</button></div>`;
+}
+function openSettings() { drawSettings(); $('#setScrim').classList.add('open'); }
+function closeSettings() { $('#setScrim').classList.remove('open'); renderAll(); }
+$('#setSheet').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const fs = b.closest('[data-fid]'), f = fs && field(fs.dataset.fid), oe = b.closest('[data-oid]');
+  const o = oe && f.options.find(x => x.id === oe.dataset.oid);
+  if (b.hasAttribute('data-close')) return closeSettings();
+  if (b.hasAttribute('data-color')) { o.color = PALETTE[(PALETTE.indexOf(o.color) + 1) % PALETTE.length] || PALETTE[0]; if (f.id === 'urgency' && !PALETTE.includes(o.color)) o.color = PALETTE[0]; save(); const y = $('#setSheet').scrollTop; drawSettings(); $('#setSheet').scrollTop = y; return; }
+  if (b.hasAttribute('data-delopt')) {
+    const n = S.tasks.filter(t => t.f[f.id] === o.id).length;
+    if (n && !confirm(`האפשרות "${o.label}" משמשת ${n === 1 ? 'משימה אחת' : n + ' משימות'}. אחרי המחיקה ${n === 1 ? 'היא תישאר' : 'הן יישארו'} בלי ${f.name}. למחוק?`)) return;
+    f.options =f.options.filter(x => x !== o); S.tasks.forEach(t => { if (t.f[f.id] === o.id) t.f[f.id] = ''; }); save(); const y = $('#setSheet').scrollTop; drawSettings(); $('#setSheet').scrollTop = y; return; }
+  if (b.hasAttribute('data-addopt')) {
+    const inp = fs.querySelector('[data-newopt]'), v = inp.value.trim(); if (!v) return inp.focus();
+    f.options.push({id: uid(), label: v, color: PALETTE[f.options.length % PALETTE.length]}); save();
+    const y = $('#setSheet').scrollTop; drawSettings(); $('#setSheet').scrollTop = y; $('#setSheet').querySelector(`[data-fid="${f.id}"] [data-newopt]`).focus(); return;
+  }
+  if (b.hasAttribute('data-reset')) { if (confirm('זה יחליף את כל המשימות והסיווגים בנתוני דוגמה. להמשיך?')) { S = seed(); ui.f = {}; ui.proj = ''; ui.pid = null; save(); drawSettings(); } }
+});
+$('#setSheet').addEventListener('input', e => {
+  const fs = e.target.closest('[data-fid]'); if (!fs) return; const f = field(fs.dataset.fid);
+  if (e.target.hasAttribute('data-fname')) f.name = e.target.value || ' ';
+  if (e.target.hasAttribute('data-olabel')) f.options.find(x => x.id === e.target.closest('[data-oid]').dataset.oid).label = e.target.value;
+  save();
+});
+$('#setSheet').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.hasAttribute('data-newopt')) { e.preventDefault(); e.target.nextElementSibling.click(); } });
+$('#setScrim').addEventListener('mousedown', e => { if (e.target.id === 'setScrim') closeSettings(); });
+
+/* ---------- main events ---------- */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('#taskScrim').classList.contains('open')) closeTask(); else if ($('#projScrim').classList.contains('open')) closeProj(); else if ($('#setScrim').classList.contains('open')) closeSettings();
+});
+$('#btnNew').onclick = () => openTask(null, ui.page === 'projects' ? ui.pid : '');
+$('#btnSettings').onclick = openSettings;
+$('#stats').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if (b) { ui.status = ui.status === b.dataset.st ? 'all' : b.dataset.st; renderAll(); } });
+$('#q').addEventListener('input', e => { ui.q = e.target.value; renderStats(); renderMain(); $('#clearF').hidden = !hasFilter(); });
+$('#filters').addEventListener('change', e => { if (e.target.dataset.ff === 'proj') ui.proj = e.target.value; else ui.f[e.target.dataset.ff] = e.target.value; renderAll(); });
+$('#clearF').onclick = () => { ui.q = ''; ui.status = 'all'; ui.f = {}; ui.proj = ''; $('#q').value = ''; renderAll(); };
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => {
+  ui.view = b.dataset.view;
+  document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderMain();
+});
+const setStatus = (t, s) => { t.status = s; if (s === 'done') t.doneAt = Date.now(); else delete t.doneAt; save(); renderAll(); };
+function handleCard(e) {
+  const card = e.target.closest('.card'); if (!card) return;
+  const t = S.tasks.find(x => x.id === card.dataset.id), act = e.target.closest('[data-act]')?.dataset.act;
+  const gp = e.target.closest('[data-goproj]');
+  if (gp) { ui.pid = gp.dataset.goproj; setPage('projects'); window.scrollTo(0, 0); return; }
+  if (act === 'focus') { t.focus = !t.focus; save(); renderAll(); toast(t.focus ? 'נוסף למיקוד היום' : 'הוסר ממיקוד היום'); return; }
+  if (act === 'snooze') { const d = new Date(todayStr()); d.setDate(d.getDate() + 1); t.due = d.toISOString().slice(0, 10); save(); renderAll(); toast('נדחה למחר'); return; }
+  if (act === 'toggle') { setStatus(t, t.status === 'done' ? 'todo' : 'done'); toast(t.status === 'done' ? 'סומן כבוצע' : 'הוחזר ללא בוצע'); }
+  else if (act === 'cycle') setStatus(t, STATUS[(STATUS.findIndex(s => s.id === t.status) + 1) % 3].id);
+  else openTask(t.id);
+}
+const cardKey = e => { if (e.key === 'Enter' && e.target.classList.contains('card')) openTask(e.target.dataset.id); };
+$('#main').addEventListener('click', handleCard);
+$('#main').addEventListener('keydown', cardKey);
+$('#focusPage').addEventListener('click', handleCard);
+$('#focusPage').addEventListener('keydown', cardKey);
+
+/* ---------- projects ---------- */
+const RES_TYPES = [
+  {id:'doc', label:'מסמך', c:'#3B82F6', ph:'קישור למסמך (Drive, Dropbox…), לא חובה'},
+  {id:'link', label:'קישור', c:'#0EA5A4', ph:'כתובת האתר'},
+  {id:'contact', label:'איש קשר', c:'#7C5CFA', ph:'טלפון או מייל'},
+  {id:'general', label:'כללי', c:'#64748B', ph:'הפרטים'}
+];
+const PROJ_COLORS = ['#3B82F6','#7C5CFA','#0EA5A4','#D6409F','#16A34A','#8A6D3B','#E11D48','#64748B'];
+const resType = id => RES_TYPES.find(r => r.id === id) || RES_TYPES[3];
+const projOf = id => S.projects.find(p => p.id === id);
+function projStats(id) {
+  const ts = S.tasks.filter(t => t.project === id), done = ts.filter(t => t.status === 'done').length, doing = ts.filter(t => t.status === 'doing').length;
+  return {n: ts.length, done, doing, pct: ts.length ? Math.round(done / ts.length * 100) : 0};
+}
+const projBar = s => `<div class="bar"><i class="b-done" style="width:${s.n ? s.done / s.n * 100 : 0}%"></i><i class="b-doing" style="width:${s.n ? s.doing / s.n * 100 : 0}%"></i></div>`;
+function linkOf(v) { v = (v || '').trim(); if (/^https?:\/\/\S+$/i.test(v)) return v; if (/^www\.\S+$/i.test(v)) return 'https://' + v; return ''; }
+let rType = 'doc', rTitleV = '', rValV = '';
+function setPage(p) {
+  ui.page = p;
+  $('#tasksPage').hidden = p !== 'tasks'; $('#projPage').hidden = p !== 'projects'; $('#focusPage').hidden = p !== 'focus';
+  document.querySelectorAll('[data-page]').forEach(b => b.setAttribute('aria-pressed', b.dataset.page === p));
+  renderAll();
+}
+document.querySelectorAll('[data-page]').forEach(b => b.onclick = () => { ui.pid = null; setPage(b.dataset.page); });
+
+function renderProjects() {
+  const el = $('#projPage'), p = ui.pid && projOf(ui.pid);
+  if (!p) {
+    ui.pid = null;
+    el.innerHTML = `<div class="phd"><h2>פרויקטים</h2><button class="btn primary" data-newproj><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>פרויקט חדש</button></div>` +
+      (S.projects.length ? `<div class="pgrid">${S.projects.map(pr => { const s = projStats(pr.id); return `<button class="pcard" data-openproj="${pr.id}" style="--pc:${pr.color}"><h3>${esc(pr.name)}</h3>${pr.desc ? `<p>${esc(pr.desc)}</p>` : ''}${projBar(s)}<div class="pmeta"><span>${s.done} מתוך ${s.n} משימות</span>${pr.due ? `<span>${ICON.cal}${dueText(pr.due)}</span>` : ''}<span>${pr.resources.length} פריטים</span></div></button>`; }).join('')}</div>`
+        : `<div class="empty">אין פרויקטים עדיין. פרויקט מאגד כמה משימות, מסמכים ופרטי קשר במקום אחד.</div>`);
+    return;
+  }
+  const s = projStats(p.id);
+  const ts = S.tasks.filter(t => t.project === p.id).sort((a, b) => (a.status === 'done') - (b.status === 'done') || urgRank(a) - urgRank(b));
+  const rt = resType(rType);
+  el.innerHTML = `<button class="btn ghost" data-pback><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>כל הפרויקטים</button>
+  <div class="phead" style="--pc:${p.color}">
+    <div><h2>${esc(p.name)}</h2>${p.desc ? `<p>${esc(p.desc)}</p>` : ''}</div>
+    <div class="pact"><button class="btn" data-editproj>עריכת פרויקט</button><button class="btn primary" data-newtask>משימה חדשה בפרויקט</button></div>
+    <div class="pprog">${projBar(s)}<span>${s.n ? `${s.pct}% הושלמו, ${s.done} מתוך ${s.n} משימות` : 'אין משימות עדיין'}${p.due ? `, יעד: ${dueText(p.due)}` : ''}</span></div>
+  </div>
+  <div class="two">
+    <section><h3 class="sh">משימות</h3>${ts.length ? `<div class="list">${ts.map(listRow).join('')}</div>` : '<div class="empty">אין משימות בפרויקט. הוסיפו את הראשונה.</div>'}</section>
+    <aside><h3 class="sh">מסמכים ופריטים</h3>
+      <div class="noteform">
+        <div class="chips" role="group" aria-label="סוג פריט">${RES_TYPES.map(r => `<button type="button" class="chip" style="--c:${r.c}" data-rtype="${r.id}" aria-pressed="${rType === r.id}"><i></i>${r.label}</button>`).join('')}</div>
+        <input id="rTitle" class="in" placeholder="שם הפריט, למשל: הסכם שכירות" value="${esc(rTitleV)}" aria-label="שם הפריט" autocomplete="off">
+        <input id="rVal" class="in" placeholder="${rt.ph}" value="${esc(rValV)}" aria-label="פרטי הפריט" autocomplete="off">
+        <button type="button" class="btn primary" data-addres>הוסף לפרויקט</button>
+      </div>
+      <div class="res">${p.resources.length ? [...p.resources].reverse().map(r => {
+        const ty = resType(r.type), href = linkOf(r.value);
+        const phone = !href && r.type === 'contact' && /^[\d\-+\s()]{6,}$/.test(r.value) ? 'tel:' + r.value.replace(/[^\d+]/g, '') : '';
+        const mail = !href && r.type === 'contact' && /^\S+@\S+\.\S+$/.test(r.value) ? 'mailto:' + r.value : '';
+        const link = href || phone || mail;
+        return `<div class="nt" style="--nc:${ty.c}"><div class="tx"><div class="hd"><b>${ty.label}</b></div><div class="tt">${esc(r.title)}</div>${r.value ? (link ? `<a href="${esc(link)}" ${href ? 'target="_blank" rel="noopener noreferrer"' : ''}>${esc(r.value)}</a>` : `<div class="val">${esc(r.value)}</div>`) : ''}</div><button type="button" class="x" data-delres="${r.id}" aria-label="מחיקת פריט">${ICON.x}</button></div>`;
+      }).join('') : '<p class="hint">עדיין אין פריטים. אפשר לשמור כאן קישורים למסמכים, אנשי קשר ופרטים חשובים.</p>'}</div>
+    </aside>
+  </div>`;
+}
+function addRes() {
+  const p = projOf(ui.pid), title = $('#rTitle').value.trim(), value = $('#rVal').value.trim();
+  if (!title) { $('#rTitle').focus(); toast('צריך לכתוב שם לפריט'); return; }
+  p.resources.push({id: uid(), type: rType, title, value}); rTitleV = rValV = ''; save(); renderProjects(); toast('נוסף לפרויקט');
+}
+function projClick(e) {
+  const b = e.target.closest('button');
+  if (e.target.closest('.card')) return handleCard(e);
+  if (!b) return;
+  const p = projOf(ui.pid);
+  if (b.hasAttribute('data-newproj')) return openProj(null);
+  if (b.dataset.openproj) { ui.pid = b.dataset.openproj; renderProjects(); return window.scrollTo(0, 0); }
+  if (b.hasAttribute('data-pback')) { ui.pid = null; return renderProjects(); }
+  if (b.hasAttribute('data-editproj')) return openProj(p.id);
+  if (b.hasAttribute('data-newtask')) return openTask(null, p.id);
+  if (b.dataset.rtype) { rTitleV = $('#rTitle').value; rValV = $('#rVal').value; rType = b.dataset.rtype; renderProjects(); return $('#rTitle').focus(); }
+  if (b.hasAttribute('data-addres')) return addRes();
+  if (b.dataset.delres) { if (!confirm('למחוק את הפריט מהפרויקט?')) return; p.resources = p.resources.filter(r => r.id !== b.dataset.delres); save(); renderProjects(); }
+}
+$('#projPage').addEventListener('click', projClick);
+$('#projPage').addEventListener('keydown', e => { cardKey(e); if (e.key === 'Enter' && (e.target.id === 'rTitle' || e.target.id === 'rVal')) { e.preventDefault(); addRes(); } });
+
+/* project dialog */
+let draftP = null, isNewP = false;
+function openProj(id) {
+  isNewP = !id;
+  draftP = id ? JSON.parse(JSON.stringify(projOf(id))) : {id: uid(), name:'', desc:'', color: PROJ_COLORS[S.projects.length % PROJ_COLORS.length], due:'', resources:[], created: Date.now()};
+  drawProj(); $('#projScrim').classList.add('open'); setTimeout(() => $('#pName')?.focus(), 30);
+}
+function drawProj() {
+  $('#projSheet').innerHTML = `
+    <div class="sheet-h"><h2 id="projH">${isNewP ? 'פרויקט חדש' : 'עריכת פרויקט'}</h2><button class="x" data-close aria-label="סגירה">${ICON.x}</button></div>
+    <div class="sheet-b">
+      <div><label class="lbl" for="pName">שם הפרויקט</label><input id="pName" class="in big" value="${esc(draftP.name)}" placeholder="למשל: המשרד החדש" autocomplete="off"></div>
+      <div><label class="lbl" for="pDesc">תיאור (לא חובה)</label><textarea id="pDesc" class="in" placeholder="במה הפרויקט עוסק?">${esc(draftP.desc)}</textarea></div>
+      <div><span class="lbl">צבע</span><div class="swb">${PROJ_COLORS.map(c => `<button type="button" style="--c:${c}" data-pcolor="${c}" aria-pressed="${draftP.color === c}" aria-label="צבע"></button>`).join('')}</div></div>
+      <div><label class="lbl" for="pDue">תאריך יעד (לא חובה)</label><input id="pDue" type="date" class="in" style="max-width:220px" value="${draftP.due}"></div>
+    </div>
+    <div class="sheet-f">
+      ${isNewP ? '' : '<button type="button" class="btn danger" data-delproj>מחק פרויקט</button>'}
+      <span class="sp"></span>
+      <button type="button" class="btn" data-close>ביטול</button>
+      <button type="button" class="btn primary" data-saveproj>${isNewP ? 'צור פרויקט' : 'שמירה'}</button>
+    </div>`;
+}
+function readProjForm() { draftP.name = $('#pName').value; draftP.desc = $('#pDesc').value; draftP.due = $('#pDue').value; }
+function closeProj() { $('#projScrim').classList.remove('open'); draftP = null; }
+$('#projSheet').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  readProjForm();
+  if (b.hasAttribute('data-close')) return closeProj();
+  if (b.dataset.pcolor) { draftP.color = b.dataset.pcolor; return drawProj(); }
+  if (b.hasAttribute('data-saveproj')) {
+    draftP.name = draftP.name.trim();
+    if (!draftP.name) { $('#pName').focus(); $('#pName').style.borderColor = '#C81E3A'; toast('צריך לכתוב שם לפרויקט'); return; }
+    draftP.desc = draftP.desc.trim();
+    const i = S.projects.findIndex(x => x.id === draftP.id);
+    if (i >= 0) S.projects[i] = draftP; else S.projects.push(draftP);
+    const id = draftP.id, wasNew = isNewP; save(); closeProj();
+    ui.pid = id; if (ui.page !== 'projects') setPage('projects'); else renderAll();
+    toast(wasNew ? 'הפרויקט נוצר' : 'נשמר'); window.scrollTo(0, 0); return;
+  }
+  if (b.hasAttribute('data-delproj')) {
+    const n = S.tasks.filter(t => t.project === draftP.id).length;
+    if (!confirm(`למחוק את הפרויקט "${draftP.name}" ואת ${draftP.resources.length} הפריטים שלו? ${n ? (n === 1 ? 'המשימה שבו תישאר' : `${n} המשימות שבו יישארו`) + ' בלי פרויקט.' : ''}`)) return;
+    S.tasks.forEach(t => { if (t.project === draftP.id) t.project = ''; });
+    S.projects = S.projects.filter(x => x.id !== draftP.id); if (ui.proj === draftP.id) ui.proj = '';
+    ui.pid = null; save(); closeProj(); renderAll(); toast('הפרויקט נמחק');
+  }
+});
+$('#projSheet').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'pName') { e.preventDefault(); $('[data-saveproj]').click(); } });
+$('#projScrim').addEventListener('mousedown', e => { if (e.target.id === 'projScrim') closeProj(); });
+
+/* drag & drop between columns */
+let dragId = null;
+$('#main').addEventListener('dragstart', e => { const c = e.target.closest('.card'); if (!c) return; dragId = c.dataset.id; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId); });
+$('#main').addEventListener('dragend', () => { dragId = null; document.querySelectorAll('.dragging,.over').forEach(x => x.classList.remove('dragging', 'over')); });
+$('#main').addEventListener('dragover', e => { const col = e.target.closest('.col'); if (!col || !dragId) return; e.preventDefault(); document.querySelectorAll('.col.over').forEach(x => x !== col && x.classList.remove('over')); col.classList.add('over'); });
+$('#main').addEventListener('drop', e => { const col = e.target.closest('.col'); if (!col || !dragId) return; e.preventDefault(); const t = S.tasks.find(x => x.id === dragId); if (t && t.status !== col.dataset.col) setStatus(t, col.dataset.col); else renderMain(); });
+
+$('#today').textContent = new Date().toLocaleDateString('he-IL', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+renderAll();
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
