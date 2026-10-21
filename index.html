@@ -20,6 +20,10 @@
   --font:'Assistant',system-ui,sans-serif; --display:'Rubik','Assistant',system-ui,sans-serif;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+.welcome{background:var(--surface);border-radius:20px;padding:44px 24px;text-align:center;max-width:520px;margin:30px auto 0;box-shadow:0 1px 2px rgba(20,33,61,.08)}
+.welcome h2{margin:0 0 8px;font:700 24px/1.2 var(--display)}
+.welcome p{margin:0 0 20px;color:var(--muted)}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);min-height:100vh}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -306,6 +310,19 @@ const ICON = {
 const mkOpts = (labels, colors) => labels.map((l, i) => ({id: uid(), label: l, color: colors ? colors[i] : PALETTE[i % PALETTE.length]}));
 function seed() {
   const urg = mkOpts(['דחוף מאוד','גבוהה','בינונית','נמוכה'], ['#C81E3A','#F26B1D','#E5B000','#6B7A90']);
+  return {
+    fields: [
+      {id:'urgency', name:'דחיפות', options:urg},
+      {id:'f1', name:'סיווג 1', options:[]},
+      {id:'f2', name:'סיווג 2', options:[]},
+      {id:'f3', name:'סיווג 3', options:[]},
+      {id:'f4', name:'סיווג 4', options:[]}
+    ],
+    tasks: [], projects: []
+  };
+}
+function seedDemo() {
+  const urg = mkOpts(['דחוף מאוד','גבוהה','בינונית','נמוכה'], ['#C81E3A','#F26B1D','#E5B000','#6B7A90']);
   const cat = mkOpts(['עבודה','בית','כספים','למידה']);
   const who = mkOpts(['אני','צוות','ספק חיצוני']);
   const proj = mkOpts(['קל','בינוני','מורכב']);
@@ -348,7 +365,7 @@ function seed() {
   tasks[0].project = projects[0].id; tasks[3].project = projects[0].id; tasks[4].project = projects[1].id;
   return {fields, tasks, projects};
 }
-const KEY = 'task-app-he-v1';
+const KEY = 'task-app-he-v2';
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
 if (!S || !S.fields || !S.tasks) S = seed();
@@ -412,7 +429,7 @@ function renderStats() {
 /* ---------- render: filters ---------- */
 function renderFilters() {
   const projSel = S.projects.length ? `<select class="sel ${ui.proj ? 'on' : ''}" data-ff="proj" aria-label="סינון לפי פרויקט"><option value="">פרויקט: הכול</option>${S.projects.map(p => `<option value="${p.id}" ${ui.proj === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>` : '';
-  $('#filters').innerHTML = projSel + S.fields.map(f => `<select class="sel ${ui.f[f.id] ? 'on' : ''}" data-ff="${f.id}" aria-label="סינון לפי ${esc(f.name)}">
+  $('#filters').innerHTML = projSel + S.fields.filter(f => f.options.length).map(f => `<select class="sel ${ui.f[f.id] ? 'on' : ''}" data-ff="${f.id}" aria-label="סינון לפי ${esc(f.name)}">
     <option value="">${esc(f.name)}: הכול</option>${f.options.map(o => `<option value="${o.id}" ${ui.f[f.id] === o.id ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`).join('');
   $('#clearF').hidden = !hasFilter();
 }
@@ -455,7 +472,9 @@ function listRow(t) {
 }
 function renderMain() {
   const items = visible();
-  if (!S.tasks.length) { $('#main').innerHTML = `<div class="empty">אין משימות עדיין. לחצו על "משימה חדשה" כדי להתחיל.</div>`; return; }
+  const has = S.tasks.length > 0;
+  document.querySelectorAll('#stats,.progress,.tools').forEach(e => e.hidden = !has);
+  if (!has) { $('#main').innerHTML = `<div class="welcome"><h2>עוד אין משימות</h2><p>התחילו במשימה אחת. אפשר להוסיף סטטוס, דחיפות והערות בהמשך.</p><button class="btn primary" data-act="newfirst">משימה חדשה</button></div>`; return; }
   if (ui.view === 'board') {
     $('#main').innerHTML = `<div class="board">${STATUS.map(s => {
       const col = items.filter(t => t.status === s.id);
@@ -504,7 +523,7 @@ function openTask(id, pid) {
   setTimeout(() => $('#fTitle')?.focus(), 30);
 }
 function drawTask() {
-  const chipGroup = f => `<div><span class="lbl">${esc(f.name)}</span><div class="chips">${f.options.map(o => `<button type="button" class="chip ${isLight(o.color) ? 'light' : ''}" style="--c:${o.color}" data-pick="${f.id}" data-o="${o.id}" aria-pressed="${draft.f[f.id] === o.id}"><i></i>${esc(o.label)}</button>`).join('') || '<span class="hint">אין אפשרויות. אפשר להוסיף ב"עריכת סיווגים".</span>'}</div></div>`;
+  const chipGroup = f => !f.options.length ? '' : `<div><span class="lbl">${esc(f.name)}</span><div class="chips">${f.options.map(o => `<button type="button" class="chip ${isLight(o.color) ? 'light' : ''}" style="--c:${o.color}" data-pick="${f.id}" data-o="${o.id}" aria-pressed="${draft.f[f.id] === o.id}"><i></i>${esc(o.label)}</button>`).join('') || '<span class="hint">אין אפשרויות. אפשר להוסיף ב"עריכת סיווגים".</span>'}</div></div>`;
   $('#taskSheet').innerHTML = `
     <div class="sheet-h"><h2 id="taskH">${isNew ? 'משימה חדשה' : 'עריכת משימה'}</h2><button class="x" data-close aria-label="סגירה">${ICON.x}</button></div>
     <div class="sheet-b">
@@ -512,7 +531,7 @@ function drawTask() {
       <div><label class="lbl" for="fNext">הצעד הבא</label><input id="fNext" class="in" value="${esc(draft.next || '')}" placeholder="הפעולה הקטנה הראשונה, למשל: להתקשר לדני ולשאול על המחיר" autocomplete="off"><p class="hint" style="margin-top:6px">צעד קטן ומוגדר מקל על ההתחלה. לא חובה.</p></div>
       <div><span class="lbl">סטטוס</span><div class="stseg">${STATUS.map(s => `<button type="button" data-status="${s.id}" style="--c:${s.c}" aria-pressed="${draft.status === s.id}"><i></i>${s.label}</button>`).join('')}</div></div>
       ${chipGroup(S.fields[0])}
-      <div><span class="lbl">פרויקט</span><div class="chips">${S.projects.map(p => `<button type="button" class="chip" style="--c:${p.color}" data-projpick="${p.id}" aria-pressed="${draft.project === p.id}"><i></i>${esc(p.name)}</button>`).join('') || '<span class="hint">אין פרויקטים עדיין. אפשר ליצור בלשונית "פרויקטים".</span>'}</div></div>
+      ${S.projects.length ? `<div><span class="lbl">פרויקט</span><div class="chips">${S.projects.map(p => `<button type="button" class="chip" style="--c:${p.color}" data-projpick="${p.id}" aria-pressed="${draft.project === p.id}"><i></i>${esc(p.name)}</button>`).join('')}</div></div>` : ''}
       <div><label class="lbl" for="fDue">תאריך יעד</label><div style="display:flex;gap:8px"><input id="fDue" type="date" class="in" style="max-width:220px" value="${draft.due}">${draft.due ? '<button type="button" class="btn ghost" data-nodue>הסר תאריך</button>' : ''}</div></div>
       ${S.fields.slice(1).map(chipGroup).join('')}
       <div>
@@ -580,13 +599,13 @@ function drawSettings() {
   $('#setSheet').innerHTML = `
     <div class="sheet-h"><h2 id="setH">עריכת סיווגים</h2><button class="x" data-close aria-label="סגירה">${ICON.x}</button></div>
     <div class="sheet-b">
-      <p class="hint">חמישה סיווגים לכל משימה: דחיפות, ועוד ארבעה שאפשר להתאים אישית. אפשר לשנות שם, להוסיף אפשרויות, לשנות צבע ולמחוק. שינויים נשמרים אוטומטית.</p>
+      <p class="hint">דחיפות, ועוד ארבעה סיווגים להתאמה אישית. תנו לכל סיווג שם והוסיפו לו אפשרויות. סיווג בלי אפשרויות לא מופיע במשימות ובסינון. שינויים נשמרים אוטומטית.</p>
       ${S.fields.map(f => `<div class="fset" data-fid="${f.id}">
         <input class="nm in" value="${esc(f.name)}" aria-label="שם הסיווג" data-fname>
         ${f.options.map(o => `<div class="opt" data-oid="${o.id}"><button class="sw" style="--c:${o.color}" data-color aria-label="שינוי צבע" title="שינוי צבע"></button><input value="${esc(o.label)}" aria-label="שם האפשרות" data-olabel><button class="x" data-delopt aria-label="מחיקת אפשרות">${ICON.x}</button></div>`).join('')}
         <div class="addopt"><input placeholder="אפשרות חדשה" data-newopt><button class="btn" data-addopt>הוסף</button></div>
       </div>`).join('')}
-      <button class="btn" data-reset style="align-self:flex-start">שחזור נתוני דוגמה</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn danger" data-reset="empty">התחל מאפס</button><button class="btn" data-reset="demo">טען נתוני דוגמה</button></div>
     </div>
     <div class="sheet-f"><span class="sp"></span><button class="btn primary" data-close>סיום</button></div>`;
 }
@@ -607,7 +626,7 @@ $('#setSheet').addEventListener('click', e => {
     f.options.push({id: uid(), label: v, color: PALETTE[f.options.length % PALETTE.length]}); save();
     const y = $('#setSheet').scrollTop; drawSettings(); $('#setSheet').scrollTop = y; $('#setSheet').querySelector(`[data-fid="${f.id}"] [data-newopt]`).focus(); return;
   }
-  if (b.hasAttribute('data-reset')) { if (confirm('זה יחליף את כל המשימות והסיווגים בנתוני דוגמה. להמשיך?')) { S = seed(); ui.f = {}; ui.proj = ''; ui.pid = null; save(); drawSettings(); } }
+  if (b.hasAttribute('data-reset')) { if (confirm(b.dataset.reset === 'demo' ? 'זה יחליף את כל המשימות והסיווגים בנתוני דוגמה. להמשיך?' : 'זה ימחק את כל המשימות, הפרויקטים והסיווגים שהגדרתם. להמשיך?')) { S = b.dataset.reset === 'demo' ? seedDemo() : seed(); ui.f = {}; ui.proj = ''; ui.pid = null; save(); drawSettings(); } }
 });
 $('#setSheet').addEventListener('input', e => {
   const fs = e.target.closest('[data-fid]'); if (!fs) return; const f = field(fs.dataset.fid);
@@ -635,6 +654,7 @@ document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => {
   renderMain();
 });
 const setStatus = (t, s) => { t.status = s; if (s === 'done') t.doneAt = Date.now(); else delete t.doneAt; save(); renderAll(); };
+$('#main').addEventListener('click', e => { if (e.target.closest('[data-act=newfirst]')) openTask(); });
 function handleCard(e) {
   const card = e.target.closest('.card'); if (!card) return;
   const t = S.tasks.find(x => x.id === card.dataset.id), act = e.target.closest('[data-act]')?.dataset.act;
